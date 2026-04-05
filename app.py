@@ -1,137 +1,85 @@
 import streamlit as st
-import random
+import requests
 
-st.set_page_config(page_title="GenAI Interview Prep", layout="centered")
+# -----------------------------
+# CONFIG
+# -----------------------------
+st.set_page_config(page_title="AI Interview Prep", layout="centered")
 
-st.title("🎯 GenAI-Based Personalized Interview Prep System")
+st.title("🎯 AI Interview Preparation System (LLM Powered)")
+
+# -----------------------------
+# HUGGING FACE API
+# -----------------------------
+API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+HEADERS = {
+    "Authorization": f"Bearer {st.secrets['HF_API_KEY']}"
+}
+
+def query_llm(prompt):
+    response = requests.post(API_URL, headers=HEADERS, json={"inputs": prompt})
+    return response.json()[0]["generated_text"]
 
 # -----------------------------
 # INPUTS
 # -----------------------------
 name = st.text_input("Enter your name")
 
-company = st.selectbox(
-    "Select Company",
-    ["Google", "Amazon", "Meta", "Apple", "Netflix"]
-)
-
-domain = st.selectbox(
-    "Select Domain",
-    ["YouTube", "E-commerce", "Social Media", "Streaming"]
-)
-
-role = st.selectbox(
-    "Select Role",
-    ["SDE", "ML Engineer"]
-)
-
-level = st.selectbox(
-    "Skill Level",
-    ["Beginner", "Intermediate", "Advanced"]
-)
+company = st.selectbox("Company", ["Google", "Amazon", "Meta"])
+domain = st.selectbox("Domain", ["YouTube", "E-commerce", "Social Media"])
+role = st.selectbox("Role", ["SDE", "ML Engineer"])
+level = st.selectbox("Level", ["Beginner", "Intermediate", "Advanced"])
 
 # -----------------------------
-# SMART GENERATOR (LIGHTWEIGHT)
+# GENERATE QUESTION
 # -----------------------------
-def generate_content(company, domain, role, level):
+if st.button("🎯 Generate Question"):
 
-    if role == "SDE":
-        if level == "Beginner":
-            return f"""
-**Question:** Find the largest element in an array.
+    prompt = f"""
+    Generate an interview question for {role} at {company} working on {domain}.
+    Level: {level}.
+    Also provide answer and explanation.
+    """
 
-**Solution:** Traverse the array and track max value.
+    output = query_llm(prompt)
 
-**Explanation:** Tests basic looping and comparisons.
-
-**Feedback:** Focus on fundamentals of arrays.
-"""
-        elif level == "Intermediate":
-            return f"""
-**Question:** Solve Two Sum problem using hashmap.
-
-**Solution:** Store elements in dictionary for O(n) lookup.
-
-**Explanation:** Optimized approach using hashing.
-
-**Feedback:** Improve time complexity thinking.
-"""
-        else:
-            return f"""
-**Question:** Design a scalable {domain} system at {company}.
-
-**Solution:** Use load balancing, CDN, distributed storage.
-
-**Explanation:** Tests system design & scalability.
-
-**Feedback:** Focus on architecture and scaling.
-"""
-
-    else:  # ML Engineer
-        if level == "Beginner":
-            return f"""
-**Question:** What is supervised learning?
-
-**Solution:** Learning from labeled data.
-
-**Explanation:** Basic ML concept.
-
-**Feedback:** Revise ML basics.
-"""
-        elif level == "Intermediate":
-            return f"""
-**Question:** How does {domain} recommendation system work?
-
-**Solution:** Uses collaborative + content-based filtering.
-
-**Explanation:** Combines user behavior and features.
-
-**Feedback:** Improve ML model understanding.
-"""
-        else:
-            return f"""
-**Question:** Design a {domain} recommendation system.
-
-**Solution:** Use embeddings, deep learning, ranking models.
-
-**Explanation:** Large-scale ML system design.
-
-**Feedback:** Focus on production ML systems.
-"""
+    st.session_state["generated"] = output
 
 # -----------------------------
-# BUTTON
+# DISPLAY QUESTION
 # -----------------------------
-if st.button("🚀 Generate Questions"):
+if "generated" in st.session_state:
 
-    if name == "":
-        st.warning("Please enter your name")
-    else:
-        st.success(f"Hello {name}! Here is your personalized prep 👇")
+    st.subheader("📌 Question & Answer")
+    st.write(st.session_state["generated"])
 
-        output = generate_content(company, domain, role, level)
-        st.markdown(output)
+    user_answer = st.text_area("✍️ Your Answer")
+
+    if st.button("✅ Evaluate Answer"):
+
+        eval_prompt = f"""
+        Compare the correct answer with this user answer:
+
+        User Answer: {user_answer}
+
+        Give feedback in 2 lines.
+        """
+
+        feedback = query_llm(eval_prompt)
+
+        st.subheader("📊 Feedback")
+        st.write(feedback)
 
 # -----------------------------
 # ADAPTIVE LEARNING
 # -----------------------------
 st.header("📈 Self Evaluation")
 
-score = st.slider("Rate your understanding", 1, 5)
+score = st.slider("Rate yourself", 1, 5)
 
 if score <= 2:
-    st.error("Focus on basics.")
+    st.error("Focus on basics")
 elif score <= 4:
-    st.warning("Work on optimization.")
+    st.warning("Improve concepts")
 else:
-    st.success("Try advanced problems.")
-
-# -----------------------------
-# FEEDBACK
-# -----------------------------
-st.header("💬 Feedback")
-
-feedback = st.text_area("What did you find difficult?")
-
-if st.button("Submit Feedback"):
-    st.success("Feedback recorded!")
+    st.success("Try advanced problems")
