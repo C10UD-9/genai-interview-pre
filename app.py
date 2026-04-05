@@ -17,19 +17,40 @@ HEADERS = {
 }
 
 def query_llm(prompt):
-    response = requests.post(API_URL, headers=HEADERS, json={"inputs": prompt})
-    data = response.json()
+    try:
+        response = requests.post(
+            API_URL,
+            headers=HEADERS,
+            json={"inputs": prompt},
+            timeout=10
+        )
 
-    if isinstance(data, list):
-        return data[0].get("generated_text", "No response generated.")
+        # If response is not JSON
+        if response.status_code != 200:
+            return f"⚠️ API Error: {response.text}"
 
-    elif isinstance(data, dict):
-        if "error" in data:
-            return f"⚠️ API Error: {data['error']}"
-        else:
-            return "⚠️ Unexpected response format."
+        try:
+            data = response.json()
+        except:
+            return "⚠️ Failed to decode response. Try again."
 
-    return "⚠️ Failed to get response."
+        # Handle different formats
+        if isinstance(data, list):
+            return data[0].get("generated_text", "No response generated.")
+
+        elif isinstance(data, dict):
+            if "error" in data:
+                return f"⚠️ API Error: {data['error']}"
+            else:
+                return str(data)
+
+        return "⚠️ Unexpected response format."
+
+    except requests.exceptions.Timeout:
+        return "⚠️ Request timed out. Try again."
+
+    except Exception as e:
+        return f"⚠️ Error: {str(e)}"
 # -----------------------------
 # INPUTS
 # -----------------------------
