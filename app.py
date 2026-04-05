@@ -18,8 +18,20 @@ HEADERS = {
 
 def query_llm(prompt):
     response = requests.post(API_URL, headers=HEADERS, json={"inputs": prompt})
-    return response.json()[0]["generated_text"]
 
+    result = response.json()
+
+    # DEBUG (optional)
+    # st.write(result)
+
+    if isinstance(result, list):
+        return result[0].get("generated_text", "No response generated.")
+
+    elif "error" in result:
+        return f"⚠️ API Error: {result['error']}"
+
+    else:
+        return "⚠️ Unexpected response from model."
 # -----------------------------
 # INPUTS
 # -----------------------------
