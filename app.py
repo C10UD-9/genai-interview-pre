@@ -11,27 +11,25 @@ st.title("🎯 AI Interview Preparation System (LLM Powered)")
 # -----------------------------
 # HUGGING FACE API
 # -----------------------------
-API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+API_URL = "https://router.huggingface.co/hf-inference/models/google/flan-t5-small"
 HEADERS = {
     "Authorization": f"Bearer {st.secrets['HF_API_KEY']}"
 }
 
 def query_llm(prompt):
     response = requests.post(API_URL, headers=HEADERS, json={"inputs": prompt})
+    data = response.json()
 
-    result = response.json()
+    if isinstance(data, list):
+        return data[0].get("generated_text", "No response generated.")
 
-    # DEBUG (optional)
-    # st.write(result)
+    elif isinstance(data, dict):
+        if "error" in data:
+            return f"⚠️ API Error: {data['error']}"
+        else:
+            return "⚠️ Unexpected response format."
 
-    if isinstance(result, list):
-        return result[0].get("generated_text", "No response generated.")
-
-    elif "error" in result:
-        return f"⚠️ API Error: {result['error']}"
-
-    else:
-        return "⚠️ Unexpected response from model."
+    return "⚠️ Failed to get response."
 # -----------------------------
 # INPUTS
 # -----------------------------
